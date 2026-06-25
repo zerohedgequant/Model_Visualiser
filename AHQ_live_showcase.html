@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AHQ · Live Quant Lab</title>
+<style>
+  :root{
+    --bg:#0B0F1A; --panel:#121A28; --panel2:#0E1420; --line:#1E2A3D;
+    --ink:#EAF1FB; --mute:#8A99AE;
+    --blue:#3B9EFF; --teal:#19E0C4; --orange:#FF6A2B; --coral:#FF5C7A; --purple:#A78BFA;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:'DejaVu Sans',-apple-system,Segoe UI,Arial,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 22px 60px;}
+  .brand{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:8px;}
+  .mark{font-size:30px;font-weight:800;}
+  .mark .b{color:var(--ink);} .mark .a{color:var(--orange);}
+  .word{font-size:21px;font-weight:800;}
+  .word .acc{color:var(--orange);}
+  .tag{font-size:10px;letter-spacing:3px;color:var(--mute);margin-left:auto;}
+  h1{font-size:30px;font-weight:800;margin:18px 0 4px;}
+  .lede{color:var(--mute);font-size:15px;max-width:760px;line-height:1.6;margin-bottom:8px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;}
+  .card.full{grid-column:1 / -1;}
+  .ctitle{font-size:15px;font-weight:700;margin:0 0 2px;}
+  .csub{font-size:12.5px;color:var(--mute);margin:0 0 12px;line-height:1.5;}
+  .kicker{font-size:11px;letter-spacing:2px;font-weight:700;margin-bottom:4px;}
+  canvas.viz{width:100%;height:300px;display:block;background:var(--panel2);border-radius:10px;}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-width:96px;}
+  .stat .l{font-size:10.5px;color:var(--mute);letter-spacing:0.5px;}
+  .stat .v{font-size:19px;font-weight:700;margin-top:2px;}
+  button.ctrl{background:transparent;border:1px solid var(--line);color:var(--ink);
+       border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  button.ctrl:hover{border-color:var(--blue);}
+  label.sl{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:8px;}
+  input[type=range]{accent-color:var(--orange);width:120px;}
+  #surf{width:100%;height:440px;display:block;background:var(--panel2);border-radius:10px;cursor:grab;}
+  #surf:active{cursor:grabbing;}
+  .note{color:var(--mute);font-size:12px;font-style:italic;margin-top:12px;line-height:1.5;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <span class="mark"><span class="b">[</span><span class="a">&#945;</span><span class="b">]</span></span>
+    <span class="word">Alpha<span class="acc">Hedge</span>Quant</span>
+    <span class="tag">LIVE QUANT LAB</span>
+  </div>
+  <h1>Models, streaming in real time.</h1>
+  <p class="lede">Three live simulations running continuously. The volatility tape and Monte-Carlo
+     engine stream tick by tick; the implied-volatility surface is fully rotatable in 3D and
+     breathes as the volatility regime shifts. Everything runs in your browser.</p>
+
+  <div class="grid">
+
+    <!-- LIVE VOL TAPE (GARCH) -->
+    <div class="card">
+      <div class="kicker" style="color:var(--orange)">VOLATILITY · GARCH</div>
+      <div class="ctitle">Live volatility tape</div>
+      <div class="csub">Price (top) and conditional volatility &sigma;&#8348; (bottom) streaming tick by tick.
+        Watch volatility cluster: a shock spikes &sigma;, then it decays slowly back.</div>
+      <canvas id="tape" class="viz"></canvas>
+      <div class="row">
+        <div class="stat"><div class="l">PRICE</div><div class="v" id="t-px">100.0</div></div>
+        <div class="stat"><div class="l">&sigma;&#8348; (ann.)</div><div class="v" id="t-vol" style="color:var(--orange)">--</div></div>
+        <div class="stat"><div class="l">REGIME</div><div class="v" id="t-reg" style="font-size:14px">calm</div></div>
+        <button class="ctrl" id="t-shock">Inject shock</button>
+      </div>
+    </div>
+
+    <!-- LIVE MONTE CARLO -->
+    <div class="card">
+      <div class="kicker" style="color:var(--teal)">SIMULATION · MONTE CARLO</div>
+      <div class="ctitle">Paths drawing live</div>
+      <div class="csub">Geometric Brownian paths sweep left to right; the outcome histogram on the
+        right fills in as each path lands. Press restart to redraw a fresh batch.</div>
+      <canvas id="mc" class="viz"></canvas>
+      <div class="row">
+        <div class="stat"><div class="l">PATHS DONE</div><div class="v" id="mc-n">0</div></div>
+        <div class="stat"><div class="l">MEAN END</div><div class="v" id="mc-mean" style="color:var(--teal)">--</div></div>
+        <div class="stat"><div class="l">P(S&gt;K)</div><div class="v" id="mc-itm">--</div></div>
+        <label class="sl">&mu; <input type="range" id="mc-mu" min="-15" max="25" value="7"></label>
+        <label class="sl">&sigma; <input type="range" id="mc-sig" min="5" max="60" value="25"></label>
+        <button class="ctrl" id="mc-go">Restart</button>
+      </div>
+    </div>
+
+    <!-- 3D VOL SURFACE -->
+    <div class="card full">
+      <div class="kicker" style="color:var(--blue)">OPTIONS · IMPLIED VOLATILITY SURFACE</div>
+      <div class="ctitle">Rotatable 3D volatility surface &mdash; drag to spin</div>
+      <div class="csub">Implied volatility across strike (moneyness) and time to maturity. The smile across
+        strikes and the term structure across maturities form the classic surface &mdash; and it animates
+        as the overall vol level drifts. Click-drag to rotate, scroll to zoom.</div>
+      <canvas id="surf"></canvas>
+      <div class="row">
+        <div class="stat"><div class="l">VOL LEVEL</div><div class="v" id="s-lvl" style="color:var(--blue)">20%</div></div>
+        <div class="stat"><div class="l">SMILE SKEW</div><div class="v" id="s-skew">0.6</div></div>
+        <button class="ctrl" id="s-toggle">Pause drift</button>
+        <span class="note" style="margin:0;">
+          <span class="dot" style="background:var(--blue)"></span>low vol
+          &nbsp;<span class="dot" style="background:var(--orange)"></span>high vol</span>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="note">Illustrative simulations for intuition &mdash; the math (GARCH recursion, geometric
+     Brownian motion, the vol smile/term-structure shape) is real, the data is synthetic and generated live.
+     Built for AlphaHedgeQuant.</p>
+</div>
+
+<script>
+const C={bg:'#0B0F1A',panel2:'#0E1420',line:'#1E2A3D',ink:'#EAF1FB',mute:'#8A99AE',
+         blue:'#3B9EFF',teal:'#19E0C4',orange:'#FF6A2B',coral:'#FF5C7A'};
+function dpr(cv){const d=window.devicePixelRatio||1;const r=cv.getBoundingClientRect();
+  cv.width=r.width*d;cv.height=r.height*d;const x=cv.getContext('2d');x.setTransform(d,0,0,d,0,0);
+  return {ctx:x,w:r.width,h:r.height};}
+
+/* ---------- 1. LIVE VOL TAPE (GARCH) ---------- */
+(function(){
+  const cv=document.getElementById('tape');let g=dpr(cv);
+  window.addEventListener('resize',()=>g=dpr(cv));
+  const N=180;let px=[],vol=[],sig2=0.0004,price=100;
+  const omega=0.000004,alpha=0.08,beta=0.90;let shock=0;
+  for(let i=0;i<N;i++){px.push(100);vol.push(0.2);}
+  function step(){
+    let z=gauss();if(shock>0){z*=3.2;shock--;}
+    sig2=omega+alpha*Math.pow((price/ (px[px.length-1]||price)-1),2)+beta*sig2;
+    const dailyVol=Math.sqrt(sig2);const ret=dailyVol*z;
+    price=price*(1+ret);
+    px.push(price);vol.push(dailyVol*Math.sqrt(252));
+    if(px.length>N){px.shift();vol.shift();}
+  }
+  function draw(){
+    const {ctx,w,h}=g;ctx.clearRect(0,0,w,h);
+    const hp=h*0.52, hv=h*0.40, gap=h*0.08;
+    // price panel
+    let mn=Math.min(...px),mx=Math.max(...px);if(mx-mn<0.5){mx+=0.5;mn-=0.5;}
+    ctx.strokeStyle=C.blue;ctx.lineWidth=1.8;ctx.beginPath();
+    px.forEach((p,i)=>{const x=i/(N-1)*w;const y=hp-(p-mn)/(mx-mn)*(hp-10)-5;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+    // vol panel
+    const vy0=hp+gap;let vmx=Math.max(0.3,...vol);
+    ctx.fillStyle='rgba(255,106,43,0.12)';ctx.strokeStyle=C.orange;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,vy0+hv);
+    vol.forEach((v,i)=>{const x=i/(N-1)*w;const y=vy0+hv-(v/vmx)*(hv-8);ctx.lineTo(x,y);});
+    ctx.lineTo(w,vy0+hv);ctx.closePath();ctx.fill();
+    ctx.beginPath();vol.forEach((v,i)=>{const x=i/(N-1)*w;const y=vy0+hv-(v/vmx)*(hv-8);
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+    ctx.fillStyle=C.mute;ctx.font='10px sans-serif';
+    ctx.fillText('price',6,12);ctx.fillText('\u03c3\u209c annualised',6,vy0+12);
+    // stats
+    const cv2=vol[vol.length-1];
+    document.getElementById('t-px').textContent=price.toFixed(1);
+    document.getElementById('t-vol').textContent=(cv2*100).toFixed(1)+'%';
+    const reg=document.getElementById('t-reg');
+    if(cv2>0.45){reg.textContent='stormy';reg.style.color=C.coral;}
+    else if(cv2>0.28){reg.textContent='elevated';reg.style.color=C.orange;}
+    else{reg.textContent='calm';reg.style.color=C.teal;}
+  }
+  document.getElementById('t-shock').onclick=()=>shock=6;
+  let acc=0;function loop(t){step();draw();requestAnimationFrame(loop);}
+  requestAnimationFrame(loop);
+})();
+
+/* ---------- 2. LIVE MONTE CARLO ---------- */
+(function(){
+  const cv=document.getElementById('mc');let g=dpr(cv);
+  window.addEventListener('resize',()=>g=dpr(cv));
+  let mu=0.07,sig=0.25,K=110,S0=100,T=1,steps=120;
+  let ends=[],running=true,cur=null,curStep=0,done=0,sumEnd=0,itm=0,maxPaths=400;
+  const plotW=0.72;
+  function newPath(){cur=[S0];curStep=0;}
+  function reset(){ends=[];done=0;sumEnd=0;itm=0;newPath();}
+  function stepPath(){
+    const dt=T/steps;
+    for(let k=0;k<3 && curStep<steps;k++){
+      const z=gauss();const last=cur[cur.length-1];
+      cur.push(last*Math.exp((mu-0.5*sig*sig)*dt+sig*Math.sqrt(dt)*z));curStep++;
+    }
+    if(curStep>=steps){const e=cur[cur.length-1];ends.push(e);sumEnd+=e;done++;
+      if(e>K)itm++;if(ends.length>maxPaths)ends.shift();
+      document.getElementById('mc-n').textContent=done;
+      document.getElementById('mc-mean').textContent=(sumEnd/done).toFixed(1);
+      document.getElementById('mc-itm').textContent=(itm/done*100).toFixed(0)+'%';
+      newPath();}
+  }
+  function draw(){
+    const {ctx,w,h}=g;ctx.clearRect(0,0,w,h);
+    const pw=w*plotW;
+    let lo=S0*0.35,hi=S0*1.9;
+    const yOf=v=>h-(v-lo)/(hi-lo)*(h-12)-6;
+    // faint completed paths (sample)
+    ctx.lineWidth=1;
+    const show=Math.min(ends.length,60);
+    // strike line
+    ctx.strokeStyle='rgba(255,106,43,0.5)';ctx.setLineDash([4,4]);ctx.beginPath();
+    ctx.moveTo(0,yOf(K));ctx.lineTo(pw,yOf(K));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=C.orange;ctx.font='10px sans-serif';ctx.fillText('K='+K,4,yOf(K)-4);
+    // current drawing path
+    if(cur){ctx.strokeStyle=C.teal;ctx.lineWidth=1.6;ctx.beginPath();
+      cur.forEach((p,i)=>{const x=i/steps*pw;const y=yOf(p);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+      ctx.stroke();}
+    // histogram on right
+    const hx0=pw+10,hw=w-hx0-4;
+    if(ends.length){
+      const bins=26;const cnt=new Array(bins).fill(0);
+      ends.forEach(e=>{let b=Math.floor((e-lo)/(hi-lo)*bins);b=Math.max(0,Math.min(bins-1,b));cnt[b]++;});
+      const mxc=Math.max(...cnt,1);
+      for(let b=0;b<bins;b++){const y0=h-(b+1)/bins*h, bh=h/bins-1;
+        const ww=cnt[b]/mxc*hw;
+        const cy=lo+(b+0.5)/bins*(hi-lo);
+        ctx.fillStyle=cy>K?'rgba(255,106,43,0.85)':'rgba(25,224,196,0.7)';
+        ctx.fillRect(hx0,y0+1,ww,bh);}
+    }
+    ctx.strokeStyle=C.line;ctx.beginPath();ctx.moveTo(pw+4,0);ctx.lineTo(pw+4,h);ctx.stroke();
+    ctx.fillStyle=C.mute;ctx.font='10px sans-serif';ctx.fillText('outcome dist \u2192',hx0,12);
+  }
+  document.getElementById('mc-go').onclick=reset;
+  document.getElementById('mc-mu').oninput=e=>mu=e.target.value/100;
+  document.getElementById('mc-sig').oninput=e=>sig=e.target.value/100;
+  reset();
+  function loop(){if(running){stepPath();draw();}requestAnimationFrame(loop);}
+  requestAnimationFrame(loop);
+})();
+
+/* ---------- 3. 3D VOL SURFACE (pure canvas, drag to rotate) ---------- */
+(function(){
+  const cv=document.getElementById('surf');let g=dpr(cv);
+  window.addEventListener('resize',()=>g=dpr(cv));
+  const NS=22, NM=16;
+  const strikes=[];for(let i=0;i<NS;i++)strikes.push(0.7+i*0.03);
+  const mats=[];for(let j=0;j<NM;j++)mats.push(0.08+j*0.13);
+  let level=0.20,t=0,playing=true;
+  let rotY=-0.7, rotX=0.5, dragging=false, lx=0, ly=0;
+
+  function ivAt(m,Tm){
+    const k=Math.log(m);
+    const smile=0.6*k*k/Math.sqrt(Tm+0.1);
+    const skew=-0.12*k/Math.sqrt(Tm+0.1);
+    const term=0.04*Math.sqrt(Tm);
+    return level+smile+skew+term;
+  }
+  // build grid of 3d points in normalised cube [-1,1]
+  function grid(){
+    const pts=[];let zmin=1e9,zmax=-1e9;
+    for(let j=0;j<NM;j++){const row=[];
+      for(let i=0;i<NS;i++){
+        const iv=ivAt(strikes[i],mats[j]);
+        zmin=Math.min(zmin,iv);zmax=Math.max(zmax,iv);
+        row.push(iv);}
+      pts.push(row);}
+    return {pts,zmin,zmax};
+  }
+  function project(x,y,z,w,h){
+    // rotate around Y then X, simple orthographic + iso scale
+    let cosY=Math.cos(rotY),sinY=Math.sin(rotY);
+    let cosX=Math.cos(rotX),sinX=Math.sin(rotX);
+    let x1=x*cosY - z*sinY;
+    let z1=x*sinY + z*cosY;
+    let y1=y*cosX - z1*sinX;
+    let z2=y*sinX + z1*cosX;
+    const scale=Math.min(w,h)*0.34;
+    return {sx:w/2 + x1*scale, sy:h/2 - y1*scale, depth:z2};
+  }
+  function lerpColor(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t));}
+  const LOW=[20,58,102], MID=[59,158,255], HIGH=[255,106,43];
+  function colorFor(tn){
+    const c = tn<0.5 ? lerpColor(LOW,MID,tn*2) : lerpColor(MID,HIGH,(tn-0.5)*2);
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+  function draw(){
+    const {ctx,w,h}=g;ctx.clearRect(0,0,w,h);
+    const {pts,zmin,zmax}=grid();
+    const quads=[];
+    for(let j=0;j<NM-1;j++){
+      for(let i=0;i<NS-1;i++){
+        const corners=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]];
+        const proj=corners.map(([ci,cj])=>{
+          const x=(ci/(NS-1))*2-1;
+          const zc=(cj/(NM-1))*2-1;
+          const yv=((pts[cj][ci]-zmin)/(zmax-zmin))*1.3-0.4;
+          return project(x,yv,zc,w,h);
+        });
+        const avgIv=(pts[j][i]+pts[j][i+1]+pts[j+1][i+1]+pts[j+1][i])/4;
+        const tn=(avgIv-zmin)/(zmax-zmin);
+        const depth=(proj[0].depth+proj[2].depth)/2;
+        quads.push({proj,tn,depth});
+      }
+    }
+    quads.sort((a,b)=>a.depth-b.depth); // painter's: far first
+    quads.forEach(q=>{
+      ctx.beginPath();
+      ctx.moveTo(q.proj[0].sx,q.proj[0].sy);
+      for(let k=1;k<4;k++)ctx.lineTo(q.proj[k].sx,q.proj[k].sy);
+      ctx.closePath();
+      ctx.fillStyle=colorFor(q.tn);ctx.fill();
+      ctx.strokeStyle='rgba(11,15,26,0.55)';ctx.lineWidth=0.6;ctx.stroke();
+    });
+    // axis labels
+    ctx.fillStyle=C.mute;ctx.font='11px sans-serif';
+    ctx.fillText('moneyness K/S \u2192',w*0.5,h-8);
+    ctx.save();ctx.translate(14,h*0.5);ctx.rotate(-Math.PI/2);
+    ctx.fillText('maturity \u2192',0,0);ctx.restore();
+    ctx.fillText('IV %',8,16);
+  }
+  // drag rotate
+  cv.addEventListener('mousedown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;});
+  window.addEventListener('mouseup',()=>dragging=false);
+  window.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    rotY+=(e.clientX-lx)*0.01;rotX+=(e.clientY-ly)*0.01;
+    rotX=Math.max(-0.2,Math.min(1.2,rotX));
+    lx=e.clientX;ly=e.clientY;
+  });
+  // touch
+  cv.addEventListener('touchstart',e=>{dragging=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;},{passive:true});
+  window.addEventListener('touchend',()=>dragging=false);
+  cv.addEventListener('touchmove',e=>{if(!dragging)return;
+    rotY+=(e.touches[0].clientX-lx)*0.01;rotX+=(e.touches[0].clientY-ly)*0.01;
+    rotX=Math.max(-0.2,Math.min(1.2,rotX));
+    lx=e.touches[0].clientX;ly=e.touches[0].clientY;},{passive:true});
+
+  document.getElementById('s-toggle').onclick=function(){
+    playing=!playing;this.textContent=playing?'Pause drift':'Resume drift';};
+
+  function tick(){
+    if(playing){t+=0.02;level=0.20+0.07*Math.sin(t);
+      if(!dragging)rotY+=0.003;
+      document.getElementById('s-lvl').textContent=(level*100).toFixed(0)+'%';}
+    draw();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+
+/* gaussian helper */
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+</script>
+</body>
+</html>
